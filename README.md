@@ -23,19 +23,21 @@ Mean and sample standard deviation over seeds **42, 62, and 82**:
 | --- | --- | --- | --- |
 | NF-UNSW-NB15-v2 | 0.6514 +/- 0.0149 | 0.4843 +/- 0.0171 | +2.78 percentage points over Hu-XGBoost |
 | NF-CSE-CIC-IDS2018-v3 | 0.7883 +/- 0.0053 | Not reported | +2.93 percentage points over FN-GNN |
+| GridStratLLM | 0.9597 +/- 0.0151 | — | 2.59 percentage points below Hu-XGBoost |
 
 Tail-F1 on NF-UNSW-NB15-v2 averages Analysis, Backdoor, Shellcode, and Worms. These are manuscript results; reproducing the experiments requires the full datasets and the stated protocol. This repository contains the CET-GNN implementation, its ablation switches, and training utilities.
 
 ## Dataset downloads
 
-The datasets are hosted by The University of Queensland in **UQ eSpace**:
+Download the data from the official repositories.
 
 | Dataset | Download / landing page | Persistent identifier |
 | --- | --- | --- |
 | NF-UNSW-NB15-v2 | [UQ eSpace](https://espace.library.uq.edu.au/view/UQ:ffbb0c1) | [10.48610/ffbb0c1](https://doi.org/10.48610/ffbb0c1) |
 | NF-CSE-CIC-IDS2018-v3 | [UQ eSpace](https://espace.library.uq.edu.au/view/UQ:ece9b83) | [10.48610/ece9b83](https://doi.org/10.48610/ece9b83) |
+| GridStratLLM | [RADAR4KIT download](https://radar.kit.edu/radar/en/dataset/bx5337kcykte438h) | [10.35097/bx5337kcykte438h](https://doi.org/10.35097/bx5337kcykte438h) |
 
-The authors' [dataset overview](https://staff.itee.uq.edu.au/marius/NIDS_datasets/) describes the NetFlow versions and their feature definitions. Follow the dataset providers' terms and citation requirements. Download and extract the CSV files into `data/`, or pass their locations with `--data`. The CIC V3 archive may name its CSV `NF-CICIDS2018-v3.csv`.
+The authors' [dataset overview](https://staff.itee.uq.edu.au/marius/NIDS_datasets/) describes the NetFlow versions and their feature definitions. Follow the dataset providers' terms and citation requirements. For the NetFlow benchmarks, extract the CSV files into `data/`, or pass their locations with `--data`. The CIC V3 archive may name its CSV `NF-CICIDS2018-v3.csv`.
 
 ```text
 data/
@@ -85,6 +87,23 @@ Each run uses AdamW (learning rate 0.002, weight decay 0.0001), batch size 512, 
 
 No labels are used to build endpoint profiles or historical messages. Precomputed histories always refer to earlier records, so shuffled training batches do not introduce future context.
 
+### GridStratLLM training and inference
+
+The GridStratLLM workflow reproduces the paper's binary CET-GNN evaluation. Download the archive from [RADAR4KIT](https://radar.kit.edu/radar/en/dataset/bx5337kcykte438h) and extract the released `merged_datasets.duckdb` into `data/`. Use Python 3.10 or later for the DuckDB preprocessing dependency.
+
+```bash
+python -m pip install -r requirements-gridstratllm.txt
+python -m cet_graphsage.gridstratllm prepare --database data/merged_datasets.duckdb --output data/gridstratllm_flows.csv.gz
+python -m cet_graphsage.gridstratllm train --flows data/gridstratllm_flows.csv.gz --output-dir outputs/gridstratllm
+python -m cet_graphsage.gridstratllm predict --flows data/gridstratllm_flows.csv.gz --checkpoint outputs/gridstratllm/seed_42/best_model.pt --split test --labelled-only --output outputs/gridstratllm/test_predictions.csv
+```
+
+The preparation step groups TCP packets into five-second segments. It labels attack segments using the released packet annotations and uses traffic outside the annotated attack periods as candidate background. Ambiguous segments remain available as unlabelled history. Histories are built independently in each capture, ordered by segment end time. The train, validation, and test sets contain 38,497, 3,084, and 15,783 labelled segments, respectively.
+
+Training defaults to seeds 42, 62, and 82 and uses at most 60 epochs. Early stopping uses validation Macro-F1 with a patience of 16 epochs after at least 20 epochs. The best checkpoint stores the feature scaling fitted on training rows and the decision threshold selected on the validation split. Each seed produces a checkpoint, training history, test predictions, and per-capture metrics. Use `--device cpu` for CPU training or prediction.
+
+The prediction command uses the saved threshold and writes an attack score and decision for each selected row. With `--split test --labelled-only`, it reproduces the scored test predictions. Omit `--labelled-only` to score unlabelled rows as well, and omit `--split` to score all captures in the input flow table.
+
 ### Ablations and sensitivity
 
 Select a paper variant with `--variant`:
@@ -126,6 +145,8 @@ CET-GNN/
     model.py         # CET-GNN and edge-query attention
     data.py          # Causal profiles, histories, scaling and batching
     cic_data.py      # CIC V3 class mapping and temporal split protocol
+    gridstratllm_data.py  # GridStratLLM flow preparation and causal histories
+    gridstratllm.py       # GridStratLLM training and checkpoint inference
     training.py      # Training, checkpoint selection and evaluation
     gpu_data.py      # Optional GPU-resident batching
   train.py
