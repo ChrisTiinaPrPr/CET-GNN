@@ -37,16 +37,13 @@ Download the data from the official repositories.
 | NF-CSE-CIC-IDS2018-v3 | [UQ eSpace](https://espace.library.uq.edu.au/view/UQ:ece9b83) | [10.48610/ece9b83](https://doi.org/10.48610/ece9b83) |
 | GridStratLLM | [RADAR4KIT download](https://radar.kit.edu/radar/en/dataset/bx5337kcykte438h) | [10.35097/bx5337kcykte438h](https://doi.org/10.35097/bx5337kcykte438h) |
 
-The authors' [dataset overview](https://staff.itee.uq.edu.au/marius/NIDS_datasets/) describes the NetFlow versions and their feature definitions. Follow the dataset providers' terms and citation requirements. For the NetFlow benchmarks, extract the CSV files into `data/`, or pass their locations with `--data`. The CIC V3 archive may name its CSV `NF-CICIDS2018-v3.csv`.
+The authors' [dataset overview](https://staff.itee.uq.edu.au/marius/NIDS_datasets/) describes the NetFlow versions and their feature definitions. For the NetFlow benchmarks, extract the CSV files into `data/`, or pass their locations with `--data`. The CIC V3 archive may name its CSV `NF-CICIDS2018-v3.csv`.
 
 ```text
 data/
   NF-UNSW-NB15-v2.csv
   NF-CICIDS2018-v3.csv
 ```
-
-Datasets, prepared caches, trained weights, and experiment outputs are excluded from Git.
-
 ## Installation
 
 Use a Python environment with PyTorch, NumPy, pandas, and scikit-learn. The original experiments used **PyTorch 2.5.1 and CUDA 12.1**. The release was checked with Python 3.9.23, PyTorch 2.5.1, NumPy 2.0.2, pandas 2.3.1, and scikit-learn 1.6.1.
